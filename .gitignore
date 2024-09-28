@@ -14,3 +14,4 @@ nvml-server-test-*
 *.o
 *.obj
 *.lst
+compile_flags.txt
