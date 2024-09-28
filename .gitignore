@@ -3,6 +3,8 @@ docs.json
 __dummy.html
 docs/
 /nvml-server
+nvml.so
+libnvml.so
 nvml-server.so
 nvml-server.dylib
 nvml-server.dll

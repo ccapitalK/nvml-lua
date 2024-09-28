@@ -5,5 +5,16 @@
 	"copyright": "Copyright © 2024, sahan",
 	"description": "A minimal D application.",
 	"license": "MIT",
-	"name": "nvml-server"
+	"name": "nvml-server",
+    "libs": ["lua", "nvidia-ml"],
+    "dflags-dmd": ["-P=-I/opt/cuda/include/"],
+    "sourceFiles": ["source/lua_bindings.c", "source/nvml.c"],
+    "configurations": [
+        {
+            "name": "nvml",
+            "targetType": "dynamicLibrary",
+            "targetName": "nvml",
+            "postBuildCommands": ["cp libnvml.so nvml.so"]
+        }
+    ]
 }
