@@ -25,7 +25,8 @@ int libNvmlInit(lua_State *L) {
     }
     int res = initNvml();
     if (!isInitialized) {
-        writeln("Didn't initialize?");
+        lua_pushstring(L, "Failed to initialize");
+        lua_error(L);
     }
     return res;
 }
@@ -87,6 +88,12 @@ int libNvmlQueryDeviceInfo(lua_State *L) {
 
     if (!lua_isinteger(L, -1)) {
         lua_pushstring(L, "Integer argument expected");
+        lua_error(L);
+        return 0;
+    }
+
+    if (!isInitialized) {
+        lua_pushstring(L, "Nvml not initialized");
         lua_error(L);
         return 0;
     }

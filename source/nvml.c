@@ -27,9 +27,7 @@ int initNvml(void) {
         goto Error;
     }
 
-    printf("Have counted %d devices\n", numDevices);
     isInitialized = 1;
-
     return 0;
 
 Error:
@@ -109,7 +107,5 @@ int closeNvml(void) {
         fprintf(stderr, "Failed to shutdown NVML: %s\n", nvmlErrorString(result));
         return 1;
     }
-    printf("Successfully closed handle\n");
-
     return 0;
 }

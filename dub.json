@@ -5,7 +5,7 @@
 	"copyright": "Copyright © 2024, sahan",
 	"description": "A minimal D application.",
 	"license": "MIT",
-	"name": "nvml-server",
+	"name": "nvml-lua",
     "libs": ["lua", "nvidia-ml"],
     "dflags-dmd": ["-P=-I/opt/cuda/include/"],
     "sourceFiles": ["source/lua_bindings.c", "source/nvml.c"],
