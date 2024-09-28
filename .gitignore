@@ -1,0 +1,16 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/nvml-server
+nvml-server.so
+nvml-server.dylib
+nvml-server.dll
+nvml-server.a
+nvml-server.lib
+nvml-server-test-*
+*.exe
+*.pdb
+*.o
+*.obj
+*.lst

@@ -1,0 +1,9 @@
+{
+	"authors": [
+		"sahan"
+	],
+	"copyright": "Copyright © 2024, sahan",
+	"description": "A minimal D application.",
+	"license": "MIT",
+	"name": "nvml-server"
+}
