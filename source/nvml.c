@@ -38,12 +38,7 @@ Error:
     return 1;
 }
 
-int nvmlNumDevices() { return numDevices; }
-
 int nvmlQueryDevice(int index, struct GpuInformation *info) {
-    if (index >= numDevices) {
-        return 1;
-    }
     nvmlReturn_t result;
     nvmlDevice_t device;
 
