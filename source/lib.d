@@ -18,7 +18,7 @@ extern(C) __gshared string[] rt_options = [
     "gcopt=profile:1"
 ];
 
-int libNvmlInit(lua_State *L) {
+extern(C) int libNvmlInit(lua_State *L) {
     if (isInitialized) {
         warn("Tried to double initialize nvml");
         return 1;
@@ -31,14 +31,14 @@ int libNvmlInit(lua_State *L) {
     return res;
 }
 
-int libNvmlIsInit(lua_State *L) {
+extern(C) int libNvmlIsInit(lua_State *L) {
     int numArgs = lua_gettop(L);
     lua_pop(L, numArgs);
     lua_pushboolean(L, isInitialized != 0);
     return 1;
 }
 
-int libNvmlClose(lua_State *L) {
+extern(C) int libNvmlClose(lua_State *L) {
     if (!isInitialized) {
         warn("Tried to close uninitialized nvml handle");
         return 1;
@@ -50,7 +50,7 @@ int libNvmlClose(lua_State *L) {
     return res;
 }
 
-int libNvmlNumDevices(lua_State *L) {
+extern(C) int libNvmlNumDevices(lua_State *L) {
     // MyThing[] things;
     // foreach (x; 0 .. (1000 * 1000)) {
     //     auto newThing = new MyThing();
@@ -62,22 +62,7 @@ int libNvmlNumDevices(lua_State *L) {
     return 1;
 }
 
-extern(C) int luaopen_nvml(lua_State *L) {
-    lua_register(L, "hello", &hello);
-    lua_register(L, "nvml_init", &libNvmlInit);
-    lua_register(L, "nvml_is_initialized", &libNvmlIsInit);
-    lua_register(L, "nvml_num_devices", &libNvmlNumDevices);
-    lua_register(L, "nvml_query_device_info", &libNvmlQueryDeviceInfo);
-    lua_register(L, "nvml_close", &libNvmlClose);
-    return 1;
-}
-
-int hello(lua_State *L) {
-    lua_pushstring(L, "Hello");
-    return 1;
-}
-
-int libNvmlQueryDeviceInfo(lua_State *L) {
+extern(C) int libNvmlQueryDeviceInfo(lua_State *L) {
     int numArgs = lua_gettop(L);
 
     if (numArgs != 1) {
@@ -98,7 +83,7 @@ int libNvmlQueryDeviceInfo(lua_State *L) {
         return 0;
     }
 
-    auto n = cast(int) lua_tointeger(L, -1);
+    auto n = cast(int) lua_tointeger(L, 1);
     lua_pop(L, 1);
 
     GpuInformation info;
@@ -138,5 +123,20 @@ int libNvmlQueryDeviceInfo(lua_State *L) {
     lua_pushinteger(L, info.shutdownTempCelcius);
     lua_settable(L, -3);
 
+    return 1;
+}
+
+luaL_Reg[] funcTable = [
+    {"init", &libNvmlInit},
+    {"is_initialized", &libNvmlIsInit},
+    {"num_devices", &libNvmlNumDevices},
+    {"query_device_info", &libNvmlQueryDeviceInfo},
+    {"close", &libNvmlClose},
+    {null, null},
+];
+
+extern(C) int luaopen_nvml(lua_State *L) {
+    luaL_newlibtable(L, funcTable.ptr);
+    luaL_setfuncs(L, funcTable.ptr, 0);
     return 1;
 }
