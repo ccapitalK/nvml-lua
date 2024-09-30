@@ -8,7 +8,7 @@
 	"name": "nvml-lua",
     "libs": ["lua", "nvidia-ml"],
     "dflags-dmd": ["-P=-I/opt/cuda/include/"],
-    "sourceFiles": ["source/lua_bindings.c", "source/nvml.c"],
+    "sourceFiles": ["source/glue.c"],
     "configurations": [
         {
             "name": "nvml",

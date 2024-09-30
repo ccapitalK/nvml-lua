@@ -1,3 +1,5 @@
+#include "lua.h"
+#include "lauxlib.h"
 #include <nvml.h>
 #include <stdio.h>
 
