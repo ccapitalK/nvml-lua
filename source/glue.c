@@ -96,13 +96,3 @@ int nvmlQueryDevice(int index, struct GpuInformation *info) {
 
     return 0;
 }
-
-int closeNvml(void) {
-    nvmlReturn_t result = nvmlShutdown();
-    isInitialized = 0;
-    if (NVML_SUCCESS != result) {
-        fprintf(stderr, "Failed to shutdown NVML: %s\n", nvmlErrorString(result));
-        return 1;
-    }
-    return 0;
-}

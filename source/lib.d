@@ -3,69 +3,11 @@ import std.string;
 import std.traits;
 
 import glue;
-import util;
 
-class MyThing {
-    ulong x;
-    ulong y;
-    ulong z;
-    ulong w;
-}
-
-extern (C) __gshared bool rt_envvars_enabled = true;
-
-// TODO(ccapitalK): There should be a better way to set this
+// TODO: Should these be enabled?
 // extern (C) __gshared string[] rt_options = [
-//     "gcopt=profile:1"
+//     "initReserve:1 incPoolSize:1"
 // ];
-
-// TODO(ccapitalK): Move nvml logic into D, separate from lua handling logic
-// TODO(ccapitalK): Make separate query option for static parameters, since nvml takes a surprising
-//                  amount of compute that scales with the number of parameters you query.
-
-extern (C) int libNvmlInit(lua_State* L) {
-    if (isInitialized) {
-        warn("Tried to double initialize nvml");
-        return 1;
-    }
-    int res = initNvml();
-    if (!isInitialized) {
-        lua_pushstring(L, "Failed to initialize");
-        lua_error(L);
-    }
-    return res;
-}
-
-extern (C) int libNvmlIsInit(lua_State* L) {
-    int numArgs = lua_gettop(L);
-    lua_pop(L, numArgs);
-    lua_pushboolean(L, isInitialized != 0);
-    return 1;
-}
-
-extern (C) int libNvmlClose(lua_State* L) {
-    if (!isInitialized) {
-        warn("Tried to close uninitialized nvml handle");
-        return 1;
-    }
-    int res = closeNvml();
-    if (isInitialized) {
-        writeln("Didn't close?");
-    }
-    return res;
-}
-
-extern (C) int libNvmlNumDevices(lua_State* L) {
-    // MyThing[] things;
-    // foreach (x; 0 .. (1000 * 1000)) {
-    //     auto newThing = new MyThing();
-    //     newThing.x = x;
-    //     things ~= newThing;
-    // }
-    // writeln(things.length);
-    lua_pushinteger(L, numDevices);
-    return 1;
-}
 
 void tableSet(T)(lua_State* L, int offset, const char* name, T value) {
     lua_pushstring(L, name);
@@ -83,6 +25,44 @@ int luaError(lua_State* L, const char* msg) {
     lua_pushstring(L, msg);
     lua_error(L);
     return 0;
+}
+
+extern (C) int libNvmlInit(lua_State* L) {
+    if (isInitialized) {
+        return luaError(L, "Tried to double initialize nvml");
+    }
+    int res = initNvml();
+    if (!isInitialized) {
+        return luaError(L, "Failed to initialize");
+    }
+    return res;
+}
+
+extern (C) int libNvmlIsInit(lua_State* L) {
+    int numArgs = lua_gettop(L);
+    lua_pop(L, numArgs);
+    lua_pushboolean(L, isInitialized != 0);
+    return 1;
+}
+
+extern (C) int libNvmlClose(lua_State* L) {
+    if (!isInitialized) {
+        return luaError(L, "Tried to close uninitialized nvml handle");
+    }
+    nvmlReturn_t result = nvmlShutdown();
+    if (result != NVML_SUCCESS) {
+        auto msg = format("Failed to shutdown NVML: %s\n", nvmlErrorString(result));
+        return luaError(L, msg.toStringz);
+    }
+    isInitialized = false;
+    return 0;
+}
+
+extern (C) int libNvmlNumDevices(lua_State* L) {
+    int numArgs = lua_gettop(L);
+    lua_pop(L, numArgs);
+    lua_pushinteger(L, numDevices);
+    return 1;
 }
 
 enum DeviceInfoType : string {
@@ -168,7 +148,26 @@ static luaL_Reg[] funcTable = [
     {null, null},
 ];
 
+static bool runtimeIsInit = false;
+
+void singletonRuntimeInit() {
+    import core.runtime;
+    import core.stdc.stdlib;
+
+    if (runtimeIsInit) {
+        return;
+    }
+    extern (C) void runtimeClose() {
+        Runtime.terminate();
+    }
+
+    Runtime.initialize();
+    runtimeIsInit = true;
+    atexit(&runtimeClose);
+}
+
 extern (C) int luaopen_nvml(lua_State* L) {
+    singletonRuntimeInit();
     luaL_newlibtable(L, funcTable.ptr);
     luaL_setfuncs(L, funcTable.ptr, 0);
     return 1;
