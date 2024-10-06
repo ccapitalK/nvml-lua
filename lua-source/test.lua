@@ -1,6 +1,6 @@
 local nvml = require('nvml')
 
-local success, result = pcall(nvml.numDevices)
+local success, result = pcall(nvml.num_devices)
 assert(not success)
 print("Error message on uninit query deviceCount: " .. result)
 

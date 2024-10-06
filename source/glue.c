@@ -40,59 +40,7 @@ Error:
     return 1;
 }
 
-int nvmlQueryDevice(int index, struct GpuInformation *info) {
-    nvmlReturn_t result;
-    nvmlDevice_t device;
-
-    result = nvmlDeviceGetHandleByIndex(index, &device);
-    if (result != NVML_SUCCESS) {
-        fprintf(stderr, "Failed to get device handle: %s\n", nvmlErrorString(result));
-        return 1;
-    }
-
-    result = nvmlDeviceGetName(device, info->name, NVML_DEVICE_NAME_BUFFER_SIZE);
-    if (result != NVML_SUCCESS) {
-        fprintf(stderr, "Failed to get device name: %s\n", nvmlErrorString(result));
-        return 1;
-    }
-
-    result = nvmlDeviceGetFanSpeed(device, &(info->fanSpeedPercent));
-    if (result != NVML_SUCCESS) {
-        fprintf(stderr, "Failed to get device fan speed percent: %s\n", nvmlErrorString(result));
-        return 1;
-    }
-
-    result = nvmlDeviceGetTemperature(device, NVML_TEMPERATURE_GPU, &(info->tempCelcius));
-    if (result != NVML_SUCCESS) {
-        fprintf(stderr, "Failed to get device temperature: %s\n", nvmlErrorString(result));
-        return 1;
-    }
-
-    result =
-        nvmlDeviceGetTemperatureThreshold(device, NVML_TEMPERATURE_THRESHOLD_SLOWDOWN, &(info->slowdownTempCelcius));
-    if (result != NVML_SUCCESS) {
-        fprintf(stderr, "Failed to get device slowdown threshold: %s\n", nvmlErrorString(result));
-        return 1;
-    }
-
-    result =
-        nvmlDeviceGetTemperatureThreshold(device, NVML_TEMPERATURE_THRESHOLD_SHUTDOWN, &(info->shutdownTempCelcius));
-    if (result != NVML_SUCCESS) {
-        fprintf(stderr, "Failed to get device shutdown threshold: %s\n", nvmlErrorString(result));
-        return 1;
-    }
-
-    result = nvmlDeviceGetClockInfo(device, NVML_CLOCK_GRAPHICS, &(info->freq));
-    if (result != NVML_SUCCESS) {
-        fprintf(stderr, "Failed to get graphics clock frequency: %s\n", nvmlErrorString(result));
-        return 1;
-    }
-
-    result = nvmlDeviceGetClockInfo(device, NVML_CLOCK_MEM, &(info->memFreq));
-    if (result != NVML_SUCCESS) {
-        fprintf(stderr, "Failed to get memory clock frequency: %s\n", nvmlErrorString(result));
-        return 1;
-    }
-
-    return 0;
+// FIXME(ccapitalK): This only exists because importC doesn't forward this #define
+nvmlReturn_t getHandleByIndex(int index, nvmlDevice_t *device) {
+    return nvmlDeviceGetHandleByIndex(index, device);
 }

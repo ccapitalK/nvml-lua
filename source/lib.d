@@ -1,3 +1,4 @@
+import std.array;
 import std.stdio;
 import std.string;
 import std.traits;
@@ -59,6 +60,9 @@ extern (C) int libNvmlClose(lua_State* L) {
 }
 
 extern (C) int libNvmlNumDevices(lua_State* L) {
+    if (!isInitialized) {
+        return luaError(L, "Tried to query num devices on uninitialized nvml handle");
+    }
     int numArgs = lua_gettop(L);
     lua_pop(L, numArgs);
     lua_pushinteger(L, numDevices);
@@ -71,8 +75,10 @@ enum DeviceInfoType : string {
     static_ = "static",
 }
 
+bool includeStatic(DeviceInfoType type) =>  type == DeviceInfoType.all || type == DeviceInfoType.static_;
+bool includeDynamic(DeviceInfoType type) =>  type == DeviceInfoType.all || type == DeviceInfoType.dynamic;
+
 static const(char)* invalidTypeInfoMessage() {
-    import std.array;
     import std.algorithm;
 
     auto names = map!((a) => cast(string) a)([EnumMembers!DeviceInfoType]).array;
@@ -89,6 +95,59 @@ bool parseDeviceType(const char[] inputString, ref DeviceInfoType type) {
     return false;
 }
 
+class QueryError : Throwable {
+    this(string errormsg, nvmlReturn_t result) {
+        Appender!string builder;
+        builder.put(errormsg);
+        builder.put(": ");
+        builder.put(nvmlErrorString(result).fromStringz);
+        super(builder.data());
+    }
+}
+
+void queryDeviceInner(int index, GpuInformation *info, DeviceInfoType type) {
+    nvmlReturn_t result;
+    nvmlDevice_t device;
+
+    void checkParam(string paramName)(nvmlReturn_t result) {
+        if (result != NVML_SUCCESS) {
+            throw new QueryError("Failed to get device " ~ paramName, result);
+        }
+    }
+
+    result = getHandleByIndex(index, &device);
+    if (result != NVML_SUCCESS) {
+        throw new QueryError("Failed to get device handle", result);
+    }
+
+    if (type.includeStatic) {
+        result = nvmlDeviceGetName(device, info.name.ptr, NVML_DEVICE_NAME_BUFFER_SIZE);
+        checkParam!"name"(result);
+
+        result =
+            nvmlDeviceGetTemperatureThreshold(device, NVML_TEMPERATURE_THRESHOLD_SLOWDOWN, &info.slowdownTempCelcius);
+        checkParam!"slowdown threshold"(result);
+
+        result =
+            nvmlDeviceGetTemperatureThreshold(device, NVML_TEMPERATURE_THRESHOLD_SHUTDOWN, &info.shutdownTempCelcius);
+        checkParam!"shutdown threshold"(result);
+    }
+
+    if (type.includeDynamic) {
+        result = nvmlDeviceGetFanSpeed(device, &info.fanSpeedPercent);
+        checkParam!"fan speed percent"(result);
+
+        result = nvmlDeviceGetTemperature(device, NVML_TEMPERATURE_GPU, &info.tempCelcius);
+        checkParam!"temperature"(result);
+
+        result = nvmlDeviceGetClockInfo(device, NVML_CLOCK_GRAPHICS, &info.freq);
+        checkParam!"graphics clock frequency"(result);
+
+        result = nvmlDeviceGetClockInfo(device, NVML_CLOCK_MEM, &info.memFreq);
+        checkParam!"memory clock frequency"(result);
+    }
+}
+
 extern (C) int libNvmlQueryDeviceInfo(lua_State* L) {
     int numArgs = lua_gettop(L);
     DeviceInfoType type = DeviceInfoType.all;
@@ -101,7 +160,7 @@ extern (C) int libNvmlQueryDeviceInfo(lua_State* L) {
         return luaError(L, "query_device_info: Integer argument expected");
     }
 
-    auto n = cast(uint) lua_tointeger(L, -numArgs);
+    auto index = cast(uint) lua_tointeger(L, -numArgs);
 
     if (numArgs > 1) {
         if (!lua_isstring(L, -1) || !parseDeviceType(lua_tostring(L, -1).fromStringz, type)) {
@@ -114,17 +173,19 @@ extern (C) int libNvmlQueryDeviceInfo(lua_State* L) {
         return luaError(L, "query_device_info: Nvml not initialized");
     }
 
-    if (n >= numDevices) {
+    if (index >= numDevices) {
         return luaError(L, "query_device_info: Device index out of range");
     }
 
     GpuInformation info;
-    if (nvmlQueryDevice(n, &info)) {
-        return luaError(L, "query_device_info: Failed to query device information");
+    try {
+        queryDeviceInner(index, &info, type);
+    } catch (QueryError e) {
+        return luaError(L, ("query_device_info: " ~ e.msg).toStringz);
     }
 
     lua_newtable(L);
-    if (type == DeviceInfoType.all || type == DeviceInfoType.static_) {
+    if (type.includeStatic()) {
         tableSet(L, -1, "name", info.name.ptr);
         tableSet(L, -1, "slowdownTempCelcius", info.slowdownTempCelcius);
         tableSet(L, -1, "shutdownTempCelcius", info.shutdownTempCelcius);
