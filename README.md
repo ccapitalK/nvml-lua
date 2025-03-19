@@ -6,10 +6,11 @@ attached nvidia devices. I mostly wrote this so that my conky script would work 
 ## How to build
 
 Dependencies:
-    - A working dlang toolchain (dmd, libphobos, dub)
-    - libnvidia-ml (should ship with your nvidia driver)
-    - nvml.h header (ships with cuda)
-    - lua 5.4
+
+- A working dlang toolchain (dmd, libphobos, dub)
+- libnvidia-ml (should ship with your nvidia driver)
+- nvml.h header (ships with cuda)
+- lua 5.4
 
 ```
 $ dub build
